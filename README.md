@@ -82,6 +82,45 @@ ROFL App #1:
         net.oasis.policy.provider: omlzaWduYXR1cmVYQEIeDSBx+gSTYLcwkog5WXJHQB9QC9iK+UhZIHSvxeZm56gft/TbJSMaFWm6003sOi1pZGO8Jf9upzMj6/1NlgBxbGFiZWxfYXR0ZXN0YXRpb25YiKJjcmFrWCB+w2XjTt2fNCCA/p5KAqFbOwDhTcZ4lyvy5W9vdp7GnGZsYWJlbHOhcm5ldC5vYXNpcy5wcm92aWRlcnhEb21ocGJuTjBZVzVqWlVnQUFBQUFBQUFBSG1od2NtOTJhV1JsY2xVQXNIRDlyTm5adUxlTWFPV291UXl6bzFJWG1FND0=
 ```
 
+## Verifying ROFL Instance TLS Certificates
+
+ROFL instances using [rofl-proxy](https://github.com/oasisprotocol/oasis-sdk/tree/main/rofl-proxy) expose their TLS public key in the `net.oasis.tls.pk` metadata field. The TLS private key is generated inside the TEE and never leaves it, ensuring that only the attested enclave can use it (see rofl-proxy implementation for details).
+
+You can verify that a service's TLS certificate matches the attested on-chain instance:
+
+**Example: Verify ethrpc.rofl.cloud**
+
+1. Query the ROFL app to get the TLS public key from instance metadata:
+```bash
+go run main.go testnet rofl1qzul9krxsnuanfqqte337utwxr47gqe4zu6rcr5z | grep -a "net.oasis.tls.pk"
+```
+
+Output:
+```
+net.oasis.tls.pk: MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0gqbijVXY+svlCtWuZw5uA82AlU0gth36TAK+zi6tDZscCHSDl4fy82/DrPBdopa3N5kvB9bx+cekiTGpG2kCg==
+```
+
+2. Extract the TLS certificate's public key from the running service and ensure it matches:
+```bash
+echo | openssl s_client -servername ethrpc.rofl.cloud -connect ethrpc.rofl.cloud:443 2>/dev/null | \
+  openssl x509 -pubkey -noout | \
+  openssl ec -pubin -outform DER 2>/dev/null | \
+  base64
+```
+
+Output:
+```
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0gqbijVXY+svlCtWuZw5uA82AlU0gth36TAK+zi6tDZscCHSDl4fy82/DrPBdopa3N5kvB9bx+cekiTGpG2kCg==
+```
+
+**What this proves:**
+- The TLS private key exists only inside the TEE and cannot be extracted or accessed by anyone outside the enclave
+- Your HTTPS connection is end-to-end encrypted directly to the enclave - neither the node operator, scheduler, nor any intermediary can decrypt your traffic
+- The service at `https://ethrpc.rofl.cloud` is operated by the attested ROFL instance with verified enclave identity (MrEnclave)
+- The instance is running code that matches the app policy's cryptographic measurements
+
+This creates a complete trust chain: Oasis consensus → ROFL registry → Enclave attestation → TLS certificate → HTTPS endpoint.
+
 ## Resources
 
 - [Oasis ROFL Documentation](https://docs.oasis.io/build/rofl/)
