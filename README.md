@@ -15,7 +15,9 @@ The Oasis network automatically verifies and enforces remote attestation on the 
 - RAK/REK binding – ensures enclave signing and encryption keys are genuine
 - Freshness – attestation quotes must be recent and are re-verified periodically
 - Node endorsements – binds the attestation to a specific node (for ROFL applications)
+- Full auditable history – all registrations, enclave updates, and policy changes are permanently recorded on-chain
 - …and other attestation conditions required by the network
+
 
 Unlike manual quote verification, this ensures policy enforcement, binding, and freshness cannot be skipped or misinterpreted - unlike in other systems that present clients with vague or one-off attestation signatures, which often provide a false sense of security.
 
