@@ -14,7 +14,7 @@ The Oasis network automatically verifies and enforces remote attestation on the 
 - Attestation quote and hardware TCB status – validated against network-defined policies
 - RAK/REK binding – ensures enclave signing and encryption keys are genuine
 - Freshness – attestation quotes must be recent and are re-verified periodically
-- Node endorsements – binds the attestation to a specific node (for ROFL applications)
+- Node endorsements – binds the attestation to a specific node or provider (for ROFL applications)
 - Full auditable history – all registrations, enclave updates, and policy changes are permanently recorded on-chain
 - …and other attestation conditions required by the network
 
@@ -25,12 +25,12 @@ That’s why the Oasis ROFL Registry, verified directly on the Oasis consensus l
 
 ## A Note on Accessing Trusted Registry State
 
-This tool uses public RPC endpoints by default (`grpc.oasis.io:443`, `testnet.grpc.oasis.io:443`). For end-to-end trustless verification (without relying on public RPC operators), run your own Oasis node or light client and point the network config to your local endpoint.
+This tool uses public RPC endpoints by default (`grpc.oasis.io:443`, `testnet.grpc.oasis.io:443`). For end-to-end trustless verification (without relying on public RPC operators), run your own Oasis node or light client and point to your local endpoint using the `--address` flag. See [oasis-light-node](https://github.com/ptrus/oasis-light-node) for an example on how to run a light client.
 
 ## Usage
 
 ```bash
-go run main.go <testnet|mainnet> [app_id]
+go run main.go [--address <node_address>] <testnet|mainnet> [app_id]
 ```
 
 Without an app ID, lists all active ROFL apps. With an app ID, queries that specific app.
@@ -46,6 +46,12 @@ go run main.go testnet rofl1qqg3qrpk4484gm8dcayfmnrkcwcg5v3nnusp5d0h
 
 # List active apps on mainnet
 go run main.go mainnet
+
+# Connect to a local node via Unix socket
+go run main.go --address /path/to/internal.sock testnet
+
+# Connect to a custom TCP endpoint
+go run main.go --address localhost:9001 testnet
 ```
 
 **Example output:**

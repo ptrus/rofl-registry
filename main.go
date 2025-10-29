@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -16,18 +17,24 @@ import (
 )
 
 func main() {
-	// Parse command-line arguments.
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <testnet|mainnet> [app_id]\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "  - Network: testnet or mainnet\n")
-		fmt.Fprintf(os.Stderr, "  - App ID (optional): specific ROFL app ID to query\n")
+	// Parse command-line flags.
+	var customAddress string
+	flag.StringVar(&customAddress, "address", "", "Custom node address (e.g., localhost:42280)")
+	flag.Parse()
+
+	// Parse positional arguments.
+	if flag.NArg() < 1 {
+		fmt.Fprintf(os.Stderr, "Usage: %s [--address <node_address>] <testnet|mainnet> [app_id]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  --address: Custom node address (optional)\n")
+		fmt.Fprintf(os.Stderr, "  Network: testnet or mainnet\n")
+		fmt.Fprintf(os.Stderr, "  App ID (optional): specific ROFL app ID to query\n")
 		os.Exit(1)
 	}
 
-	networkName := os.Args[1]
+	networkName := flag.Arg(0)
 	var specificAppID string
-	if len(os.Args) >= 3 {
-		specificAppID = os.Args[2]
+	if flag.NArg() >= 2 {
+		specificAppID = flag.Arg(1)
 	}
 
 	// Setup client.
@@ -39,7 +46,26 @@ func main() {
 	if network == nil {
 		log.Fatalf("Network '%s' not found in configuration", networkName)
 	}
-	fmt.Printf("Connecting to %s...\n", networkName)
+
+	// Override network config with custom address if provided.
+	if customAddress != "" {
+		// Clone the network config to avoid modifying the default.
+		networkCopy := *network
+		network = &networkCopy
+
+		// Set the custom RPC address. The SDK's connection.Connect will automatically
+		// determine whether to use TLS based on whether the address is local.
+		// For Unix socket paths (starting with /), prepend "unix://" scheme.
+		if len(customAddress) > 0 && customAddress[0] == '/' {
+			network.RPC = "unix://" + customAddress
+		} else {
+			network.RPC = customAddress
+		}
+		fmt.Printf("Connecting to %s (custom address)...\n", customAddress)
+	} else {
+		fmt.Printf("Connecting to %s...\n", networkName)
+	}
+
 	conn, err := connection.Connect(ctx, network)
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
